@@ -1224,7 +1224,7 @@ function fastLoop(){
         breakdown.p[global.race.species] = {};
     }
 
-    var time_multiplier = 0.25;
+    var time_multiplier = 0.25 * turboSpeed;
     resetResBuffer();
 
     if (global.race.species === 'protoplasm'){
@@ -3890,15 +3890,20 @@ function fastLoop(){
         }
 
         // Fortress Repair
-        if (global.portal['fortress'] && global.portal.fortress.walls < 100){
-            if (modRes('Stone', -(200 * time_multiplier))){
-                global.portal.fortress.repair++;
-                breakdown.p.consume.Stone[loc('portal_fortress_name')] = -200;
-            }
-            if (global.portal.fortress.repair >= actions.portal.prtl_fortress.info.repair()){
-                global.portal.fortress.repair = 0;
-                global.portal.fortress.walls++;
-            }
+        if (global.portal["fortress"] && global.portal.fortress.walls < 100) {
+          if (modRes("Stone", -(200 * time_multiplier))) {
+            global.portal.fortress.repair += turboSpeed;
+            breakdown.p.consume.Stone[loc("portal_fortress_name")] = -200 * turboSpeed;
+          }
+          const need = actions.portal.prtl_fortress.info.repair();
+          if (global.portal.fortress.repair >= need) {
+            const original = global.portal.fortress.walls;
+            const addition = global.portal.fortress.repair / need;
+            const fixedAddition = Math.floor(addition);
+            global.portal.fortress.walls = Math.min(original + fixedAddition, 100);
+            const diff = global.portal.fortress.walls - original;
+            global.portal.fortress.repair -= diff * need;
+          }
         }
 
         // Energy Recharge
@@ -3981,9 +3986,17 @@ function fastLoop(){
                 }
 
                 upperBound *= (3 - (2 ** time_multiplier));
-                if(Math.rand(0, upperBound) <= lowerBound){
-                    global['resource'][global.race.species].amount++;
+                // if(Math.rand(0, upperBound) <= lowerBound){
+                //     global['resource'][global.race.species].amount++;
+                //     global.civic[global.civic.d_job].workers++;
+                // }
+                // Change to account for boosted time, currently just use a for loop
+                // (this will be inaccurate if turbo speed is too high and calendar day changes fast)
+                for (let i = 0; i < time_multiplier; i++) {
+                  if (Math.rand(0, upperBound) <= lowerBound) {
+                    global.resource[global.race.species].amount++;
                     global.civic[global.civic.d_job].workers++;
+                  }
                 }
             }
         }
@@ -8072,24 +8085,28 @@ function fastLoop(){
     }
 
     // carport repair
-    if (global.portal['carport']){
-        if (global.portal.carport.damaged > 0){
-            if (!$('#portal-carport .count').hasClass('has-text-alert')){
-                $('#portal-carport .count').addClass('has-text-alert');
-            }
-            global.portal.carport.repair++;
-            if (global.portal.carport.repair >= actions.portal.prtl_fortress.carport.repair()){
-                global.portal.carport.repair = 0;
-                global.portal.carport.damaged--;
-            }
-            //limit carport damage to account for removing high population
-            global.portal.carport.damaged = Math.min(global.portal.carport.damaged, jobScale(global.portal.carport.count));
+    if (global.portal["carport"]) {
+      if (global.portal.carport.damaged > 0) {
+        if (!$("#portal-carport .count").hasClass("has-text-alert")) {
+          $("#portal-carport .count").addClass("has-text-alert");
         }
-        else {
-            if ($('#portal-carport .count').hasClass('has-text-alert')){
-                $('#portal-carport .count').removeClass('has-text-alert');
-            }
+        global.portal.carport.repair += turboSpeed;
+        const need = actions.portal.prtl_fortress.carport.repair();
+        if (global.portal.carport.repair >= need) {
+          const original = global.portal.carport.damaged;
+          const addition = global.portal.carport.repair / need;
+          const fixedAddition = Math.floor(addition);
+          global.portal.carport.damaged = Math.max(0, original - fixedAddition);
+          const diff = original - global.portal.carport.damaged;
+          global.portal.carport.repair -= diff * need;
         }
+        //limit carport damage to account for removing high population
+        global.portal.carport.damaged = Math.min(global.portal.carport.damaged, jobScale(global.portal.carport.count));
+      } else {
+        if ($("#portal-carport .count").hasClass("has-text-alert")) {
+          $("#portal-carport .count").removeClass("has-text-alert");
+        }
+      }
     }
 
     // main resource delta tracking
