@@ -33,6 +33,7 @@ Object.defineProperty(window, "turboSpeed", {
     console.log("全局速度改为", v);
   },
 });
+window.global = global;
 
 {
     $(document).ready(function() {
@@ -10579,8 +10580,6 @@ function midLoop(){
         }
         for (let i=0; i<espEnd; i++){
             // Train spies
-            let delta = turboSpeed;
-            global.civic.foreign[`gov${i}`].trn -= delta;
             if (global.civic.foreign[`gov${i}`].trn > 0){
                 global.civic.foreign[`gov${i}`].trn = Math.max(0, global.civic.foreign[`gov${i}`].trn - turboSpeed);
                 if (global.civic.foreign[`gov${i}`].trn <= 0){
