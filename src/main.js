@@ -8474,67 +8474,87 @@ function midLoop(){
             global.resource.Authority.display = false;
         }
 
-        if (global.race['unfathomable'] && global.city['captive_housing']){
-            let strength = weaponTechModifer();
-            let hunt = workerScale(global.civic.hunter.workers,'hunter')
-            hunt *= racialTrait(hunt,'hunting') * strength;
-            if (global.race['swift']){
-                hunt *= 1 + (traits.swift.vars()[1] / 100);
-            }
+        // Add a loop to account for turboSpeed
+        const loops = Math.min(1, Math.floor(turboSpeed));
+        for (let i = 0; i < loops; i++) {
+            if (global.race["unfathomable"] && global.city["captive_housing"]) {
+                let strength = weaponTechModifer();
+                let hunt = workerScale(global.civic.hunter.workers, "hunter");
+                hunt *= racialTrait(hunt, "hunting") * strength;
+                if (global.race["swift"]) {
+                    hunt *= 1 + traits.swift.vars()[1] / 100;
+                }
 
-            if (global.race['servants']){
-                let serve = global.race.servants.jobs.hunter * strength;
-                serve *= servantTrait(global.race.servants.jobs.hunter,'hunting');
-                hunt += serve;
-            }
+                if (global.race["servants"]) {
+                    let serve = global.race.servants.jobs.hunter * strength;
+                    serve *= servantTrait(global.race.servants.jobs.hunter, "hunting");
+                    hunt += serve;
+                }
 
-            let usedCap = 0;
-            let thralls = 0;
-            let imprisoned = [];
-            if (global.city.hasOwnProperty('surfaceDwellers')){
-                for (let i = 0; i < global.city.surfaceDwellers.length; i++){
-                    let mindbreak = global.city.captive_housing[`race${i}`];
-                    let jailed = global.city.captive_housing[`jailrace${i}`];
-                    usedCap += mindbreak + jailed;
-                    thralls += mindbreak;
-                    if (jailed > 0){
-                        imprisoned.push(i);
+                let usedCap = 0;
+                let thralls = 0;
+                let imprisoned = [];
+                if (global.city.hasOwnProperty("surfaceDwellers")) {
+                    for (let i = 0; i < global.city.surfaceDwellers.length; i++) {
+                        let mindbreak = global.city.captive_housing[`race${i}`];
+                        let jailed = global.city.captive_housing[`jailrace${i}`];
+                        usedCap += mindbreak + jailed;
+                        thralls += mindbreak;
+                        if (jailed > 0) {
+                            imprisoned.push(i);
+                        }
+                    }
+                }
+
+                let catchVar = Math.round(40 / traits.unfathomable.vars()[1]);
+                if (usedCap < global.city.captive_housing.raceCap && Math.rand(0, catchVar * usedCap - hunt) <= 0) {
+                    let k = Math.rand(0, global.city.surfaceDwellers.length);
+                    global.city.captive_housing[`jailrace${k}`]++;
+                }
+
+                if (
+                    global.tech["unfathomable"] &&
+                    global.tech.unfathomable >= 2 &&
+                    global.civic.torturer.workers > 0 &&
+                    imprisoned.length > 0
+                ) {
+                    if (
+                        Math.rand(0, Math.ceil((thralls + 1) ** 1.45)) <
+                        (global.civic.torturer.workers / 2) * (1 + traits.psychic.vars()[0])
+                    ) {
+                        let k = imprisoned[Math.rand(0, imprisoned.length)];
+                        global.city.captive_housing[`jailrace${k}`]--;
+                        global.city.captive_housing[`race${k}`]++;
                     }
                 }
             }
 
-            let catchVar = Math.round(40 / traits.unfathomable.vars()[1]);
-            if (usedCap < global.city.captive_housing.raceCap && Math.rand(0,(catchVar * usedCap) - hunt) <= 0){
-                let k = Math.rand(0,global.city.surfaceDwellers.length);
-                global.city.captive_housing[`jailrace${k}`]++;
-            }
-
-            if (global.tech['unfathomable'] && global.tech.unfathomable >= 2 && global.civic.torturer.workers > 0 && imprisoned.length > 0){
-                if (Math.rand(0,Math.ceil((thralls+1) ** 1.45)) < (global.civic.torturer.workers / 2) * (1 + traits.psychic.vars()[0])){
-                    let k = imprisoned[Math.rand(0,imprisoned.length)];
-                    global.city.captive_housing[`jailrace${k}`]--;
-                    global.city.captive_housing[`race${k}`]++;
+            if (global.race["psychic"]) {
+                if (global.race["psychicPowers"] && global.race.psychicPowers.boostTime > 0) {
+                    global.race.psychicPowers.boostTime--;
+                    if (global.race.psychicPowers.boostTime < 0 || global.race.psychicPowers.boostTime > 360) {
+                        global.race.psychicPowers.boostTime = 0;
+                    }
                 }
-            }
-        }
-
-        if (global.race['psychic']){
-            if (global.race['psychicPowers'] && global.race.psychicPowers.boostTime > 0){
-                global.race.psychicPowers.boostTime--;
-                if (global.race.psychicPowers.boostTime < 0 || global.race.psychicPowers.boostTime > 360){
-                    global.race.psychicPowers.boostTime = 0;
+                if (
+                    global.race["psychicPowers"] &&
+                    global.race.psychicPowers["assaultTime"] &&
+                    global.race.psychicPowers.assaultTime > 0
+                ) {
+                    global.race.psychicPowers.assaultTime--;
+                    if (global.race.psychicPowers.assaultTime < 0 || global.race.psychicPowers.assaultTime > 360) {
+                        global.race.psychicPowers.assaultTime = 0;
+                    }
                 }
-            }
-            if (global.race['psychicPowers'] && global.race.psychicPowers['assaultTime'] && global.race.psychicPowers.assaultTime > 0){
-                global.race.psychicPowers.assaultTime--;
-                if (global.race.psychicPowers.assaultTime < 0 || global.race.psychicPowers.assaultTime > 360){
-                    global.race.psychicPowers.assaultTime = 0;
-                }
-            }
-            if (global.race['psychicPowers'] && global.race.psychicPowers['cash'] && global.race.psychicPowers.cash > 0){
-                global.race.psychicPowers.cash--;
-                if (global.race.psychicPowers.cash < 0 || global.race.psychicPowers.cash > 360){
-                    global.race.psychicPowers.cash = 0;
+                if (
+                    global.race["psychicPowers"] &&
+                    global.race.psychicPowers["cash"] &&
+                    global.race.psychicPowers.cash > 0
+                ) {
+                    global.race.psychicPowers.cash--;
+                    if (global.race.psychicPowers.cash < 0 || global.race.psychicPowers.cash > 360) {
+                        global.race.psychicPowers.cash = 0;
+                    }
                 }
             }
         }
@@ -10558,15 +10578,21 @@ function midLoop(){
             spyCatchMod += yetiFathom >= 0.5 ? 2 : 1;
         }
         for (let i=0; i<espEnd; i++){
+            // Train spies
+            let delta = turboSpeed;
+            global.civic.foreign[`gov${i}`].trn -= delta;
             if (global.civic.foreign[`gov${i}`].trn > 0){
-                global.civic.foreign[`gov${i}`].trn--;
-                if (global.civic.foreign[`gov${i}`].trn === 0){
+                global.civic.foreign[`gov${i}`].trn = Math.max(0, global.civic.foreign[`gov${i}`].trn - turboSpeed);
+                if (global.civic.foreign[`gov${i}`].trn <= 0){
+                    global.civic.foreign[`gov${i}`].trn = 0;
                     global.civic.foreign[`gov${i}`].spy++;
                 }
             }
+            // Sabotage
             if (global.civic.foreign[`gov${i}`].sab > 0){
-                global.civic.foreign[`gov${i}`].sab--;
-                if (global.civic.foreign[`gov${i}`].sab === 0){
+                global.civic.foreign[`gov${i}`].sab = Math.max(0, global.civic.foreign[`gov${i}`].sab - turboSpeed);
+                if (global.civic.foreign[`gov${i}`].sab <= 0){
+                    global.civic.foreign[`gov${i}`].sab = 0;
                     switch (global.civic.foreign[`gov${i}`].act){
                         case 'influence':
                             if (Math.floor(seededRandom(0,4 + spyCatchMod)) === 0){
@@ -10814,7 +10840,7 @@ function midLoop(){
         if (global.arpa['sequence'] && global.arpa.sequence.on && gene_sequence){
             let labs = sequenceLabs();
             global.arpa.sequence.labs = labs;
-            global.arpa.sequence.time -= global.arpa.sequence.boost ? labs * 2 : labs;
+            global.arpa.sequence.time -= (global.arpa.sequence.boost ? labs * 2 : labs) * turboSpeed;
             global.arpa.sequence.progress = global.arpa.sequence.max - global.arpa.sequence.time;
             if (global.arpa.sequence.time <= 0){
                 global.arpa.sequence.max = 50000 * (1 + (global.race.mutation ** 2));
@@ -10954,10 +10980,10 @@ function midLoop(){
                 }
                 else {
                     if (global.portal.hasOwnProperty('waygate') && global.tech.hasOwnProperty('waygate') && global.portal.waygate.on === 1 && global.tech.waygate >= 2 && global.portal.waygate.progress < 100){
-                        progress += mechRating(mech,true);
+                        progress += mechRating(mech,true) * turboSpeed;
                     }
                     else {
-                        progress += mechRating(mech,false);
+                        progress += mechRating(mech,false) * turboSpeed;
                     }
                 }
             }
@@ -11030,7 +11056,7 @@ function midLoop(){
         if(global.race['fasting'] && global.portal['oven_complete']){
             let progress = 0;
             if(p_on['oven_complete']){
-                progress = 0.00025;
+                progress = 0.00025 * turboSpeed;
                 if(global.portal['dish_life_infuser'] && global.portal['dish_life_infuser'].on){
                     progress *= 1 + (0.15 * global.portal['dish_life_infuser'].on);
                 }
