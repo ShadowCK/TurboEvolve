@@ -11628,21 +11628,21 @@ function longLoop(){
             }, 4000);
         }
 
-        if (global.portal['fortress'] && !global.race['warlord']){
-            bloodwar();
-        }
-        else if (global.race['warlord'] && global.portal['minions'] && global.portal.minions.count > 0){
-            hellguard();
+        // TODO: Actually use a "dayPassed" for better precision. This does not account for fractional part like in 0.x, 1.x.
+        // TODO: Also better if write the day report for each day, not pass X days then put all the killed info in one day.
+        for (let i = 0; i < turboSpeed; i++) {
+            if (global.portal["fortress"] && !global.race["warlord"]) {
+                bloodwar();
+            } else if (global.race["warlord"] && global.portal["minions"] && global.portal.minions.count > 0) {
+                hellguard();
+            }
         }
 
         if (global.civic.govern.rev > 0){
-            global.civic.govern.rev--;
+            global.civic.govern.rev = Math.max(0, global.civic.govern.rev - turboSpeed);
         }
-        if (global.civic.govern.fr > 0){
-            global.civic.govern.fr--;
-        }
-        if (global.civic.govern.rev < 0){
-            global.civic.govern.rev = 0;
+        if (global.civic.govern.fr > 0){            
+            global.civic.govern.fr = Math.max(0, global.civic.govern.fr - turboSpeed);
         }
 
         if (global.city.ptrait.includes('trashed') || global.race['scavenger']){
@@ -11654,30 +11654,45 @@ function longLoop(){
         }
 
         // Homeless
-        if (global.civic.homeless > 0){
-            let railway = global.arpa['railway'] ? global.arpa.railway.rank : 0;
-            let abandon_odds = Math.floor(railway / (railway + 25) * 10);
-            if (Math.rand(0,10) <= abandon_odds){
-                global.civic.homeless--;
+        if (global.civic.homeless > 0) {
+            let railway = global.arpa["railway"] ? global.arpa.railway.rank : 0;
+            let abandon_odds = Math.floor((railway / (railway + 25)) * 10);
+            // TODO: Actually use a "dayPassed" for better precision. This does not account for fractional part like in 0.x, 1.x.
+            for (let i = 0; i < turboSpeed; i++) {
+                if (Math.rand(0, 10) <= abandon_odds) {
+                    global.civic.homeless--;
+                }
             }
         }
 
         if (global.race['unstable']){
             if (global.resource[global.race.species].amount > 0 && Math.rand(0,100) < traits.unstable.vars()[0]){
-                let bound = Math.ceil((global.resource[global.race.species].amount ** 0.9) * traits.unstable.vars()[1] / 100);
-                let died = Math.rand(0,bound);
-                global.resource[global.race.species].amount -= died;
-                if (global.resource[global.race.species].amount < 0){ global.resource[global.race.species].amount = 0; }
-                global.stats.uDead += died;
+                // TODO: Actually use a "dayPassed" for better precision. This does not account for fractional part like in 0.x, 1.x.
+                for (let i = 0; i < turboSpeed; i++) {
+                    let bound = Math.ceil(
+                        (global.resource[global.race.species].amount ** 0.9 * traits.unstable.vars()[1]) / 100
+                    );
+                    let died = Math.rand(0, bound);
+                    global.resource[global.race.species].amount -= died;
+                    if (global.resource[global.race.species].amount < 0) {
+                        global.resource[global.race.species].amount = 0;
+                    }
+                    global.stats.uDead += died;
+                }
             }
         }
 
         if (global.race['blubber'] && global.resource[global.race.species].amount >= 50){
-            let oldAge = Math.rand(0,1 + Math.floor(global.resource[global.race.species].amount / 50));
-            blubberFill(oldAge);
+            // TODO: Actually use a "dayPassed" for better precision. This does not account for fractional part like in 0.x, 1.x.
+            for (let i = 0; i < turboSpeed; i++) {
+                let oldAge = Math.rand(0, 1 + Math.floor(global.resource[global.race.species].amount / 50));
+                blubberFill(oldAge);
+            }
         }
 
         // Market price fluctuation
+        // This follows a simple Markov-like random walk so the long-term average remains stable.
+        // No need to scale by turboSpeed.
         if (global.tech['currency'] && global.tech['currency'] >= 2){
             let fluxVal = govActive('risktaker',0) ? 2 : 4;
             Object.keys(resource_values).forEach(function (res) {
@@ -11714,25 +11729,34 @@ function longLoop(){
                 global.race['blood_thirst_count'] = 1;
             }
             if (global.race.blood_thirst_count > 1){
-                global.race.blood_thirst_count--;
+                // TODO: Actually use a "dayPassed" for better precision. This does not account for fractional part like in 0.x, 1.x.
+                global.race.blood_thirst_count = Math.max(0, global.race.blood_thirst_count - turboSpeed);
             }
         }
 
         if (global.race['truepath'] && global.civic.foreign.gov3.mil < 500){
-            if (Math.rand(0, 50) === 0){
-                global.civic.foreign.gov3.mil++;
+            // TODO: Actually use a "dayPassed" for better precision. This does not account for fractional part like in 0.x, 1.x.
+            for (let i = 0; i < turboSpeed; i++) {
+                if (Math.rand(0, 50) === 0) {
+                    global.civic.foreign.gov3.mil++;
+                }
             }
         }
 
         if (global.race['pet']){
             if (global.race.pet.event > 0){
-                global.race.pet.event--;
+                global.race.pet.event = Math.min(0, global.race.pet.event - turboSpeed);
             }
-            if (global.race.pet.pet > 0){
-                global.race.pet.pet--;
-            }
-            else if (global.race.pet.pet < 0){
-                global.race.pet.pet++;
+            // TODO: Actually use a "dayPassed" for better precision. This does not account for fractional part like in 0.x, 1.x.
+            for (let i = 0; i < turboSpeed; i++) {
+                if (global.race.pet.pet > 0) {
+                    global.race.pet.pet--;
+                } else if (global.race.pet.pet < 0) {
+                    global.race.pet.pet++;
+                }
+                if (global.race.pet.pet === 0) {
+                    break;
+                }
             }
         }
 
@@ -11797,42 +11821,52 @@ function longLoop(){
                     healed++;
                 }
             }
-            global.civic.garrison.wounded -= healed;
+            global.civic.garrison.wounded -= healed * turboSpeed;
             if (global.civic.garrison.wounded < 0){
                 global.civic.garrison.wounded = 0;
             }
         }
 
         if (global.civic.garrison['fatigue'] && global.civic.garrison.fatigue > 0){
-            global.civic.garrison.fatigue--;
+            global.civic.garrison.fatigue = Math.max(0, global.civic.garrison.fatigue - turboSpeed);
         }
 
         if (global.civic.garrison['protest'] && global.civic.garrison.protest > 0){
-            global.civic.garrison.protest--;
+            global.civic.garrison.protest = Math.max(0, global.civic.garrison.protest - turboSpeed);
         }
 
+        // TODO: Actually use a "dayPassed" variable for better precision
         if (global.civic.garrison['m_use'] && global.civic.garrison.m_use > 0){
             let merc_bound = global.tech['mercs'] && global.tech['mercs'] >= 2 ? 3 : 4;
             let max_merc_roll = global.race['high_pop'] ? traits.high_pop.vars()[0] : 1;
             let num_restore = 0;
-            for (let roll_num = 0; roll_num < max_merc_roll; roll_num++){
-                if (Math.rand(0, merc_bound) === 0){
-                    num_restore++;
+            for (let i = 0; i < turboSpeed; i++) {
+                for (let roll_num = 0; roll_num < max_merc_roll; roll_num++) {
+                    if (Math.rand(0, merc_bound) === 0) {
+                        num_restore++;
+                    }
                 }
             }
             global.civic.garrison.m_use = Math.max(0, global.civic.garrison.m_use - num_restore);
         }
 
         if (global.race['rainbow_active'] && global.race['rainbow_active'] > 1){
-            global.race['rainbow_active']--;
+            global.race['rainbow_active'] = Math.max(0, global.race['rainbow_active']);
         }
 
         if (global.city.calendar.day > 0){
             // Time
-            global.city.calendar.day++;
-            global.stats.days++;
-            if (global.city.calendar.day > orbitLength()){
-                global.city.calendar.day = 1;
+            const addition = turboSpeed;
+            if (global.daysAccumulated == null) {
+                global.daysAccumulated = 0;
+            }
+            global.daysAccumulated += addition - Math.floor(addition);
+            const fixedAddition = Math.floor(addition) + Math.floor(global.daysAccumulated);
+            global.city.calendar.day += fixedAddition;
+            global.stats.days += fixedAddition;
+            global.daysAccumulated = global.daysAccumulated - Math.floor(global.daysAccumulated)
+            while (global.city.calendar.day > orbitLength()) {
+                global.city.calendar.day -= orbitLength();
                 global.city.calendar.year++;
             }
 
@@ -11871,6 +11905,7 @@ function longLoop(){
             }
 
             // Weather
+            // Will not use turboSpeed here because we do not want to run the long loop for dayPassed times to account for every day passed with weather change.
             if (global.race['cataclysm'] || global.race['orbit_decayed']){
                 global.city.calendar.wind = 0;
                 global.city.calendar.temp = 1;
@@ -12029,15 +12064,16 @@ function longLoop(){
             }
 
             // Moon Phase
+            // TODO: Actually use a "dayPassed" variable for better precision
             if (!global.race['orbit_decayed']){
                 if (global.city.ptrait.includes('retrograde')){
-                    global.city.calendar.moon--;
+                    global.city.calendar.moon -= Math.floor(turboSpeed);
                     if (global.city.calendar.moon < 0){
                         global.city.calendar.moon = 27;
                     }
                 }
                 else {
-                    global.city.calendar.moon++;
+                    global.city.calendar.moon += Math.floor(turboSpeed);
                     if (global.city.calendar.moon > 27){
                         global.city.calendar.moon = 0;
                     }
@@ -12183,7 +12219,7 @@ function longLoop(){
                 let tShip = false;
                 global.space.shipyard.ships.forEach(function(ship){
                     if (ship.transit > 0 && ship.fueled){
-                        ship.transit--;
+                        ship.transit = Math.max(0, ship.transit - turboSpeed);
                         let trip = 1 - (ship.transit / ship.dist);
                         let mx = Math.abs(ship.origin.x - ship.destination.x) * trip;
                         let my = Math.abs(ship.origin.y - ship.destination.y) * trip;
@@ -12196,22 +12232,27 @@ function longLoop(){
                         ship.dist = 0;
                     }
                     if (ship.damage > 0 && p_on['shipyard']){
-                        ship.damage--;
+                        ship.damage = Math.max(0, ship.damage - turboSpeed);
                     }
-                    if (ship.location !== 'spc_dwarf' && Math.rand(0, 10) === 0){
-                        let dm = ship.location === 'spc_triton' ? 2 : 1;
-                        switch (ship.armor){
-                            case 'steel':
-                                ship.damage += Math.rand(1, 8 * dm);
-                                break;
-                            case 'alloy':
-                                ship.damage += Math.rand(1, 6 * dm);
-                                break;
-                            case 'neutronium':
-                                ship.damage += Math.rand(1, 4 * dm);
-                                break;
-                        }
-                        if (ship.damage > 90){ ship.damage = 90; }
+                    // TODO: Actually use a "dayPassed" for better precision. This does not account for fractional part like in 0.x, 1.x.
+                    for (let i = 0; i < turboSpeed; i++) {
+                         if (ship.location !== "spc_dwarf" && Math.rand(0, 10) === 0) {
+                             let dm = ship.location === "spc_triton" ? 2 : 1;
+                             switch (ship.armor) {
+                                 case "steel":
+                                     ship.damage += Math.rand(1, 8 * dm);
+                                     break;
+                                 case "alloy":
+                                     ship.damage += Math.rand(1, 6 * dm);
+                                     break;
+                                 case "neutronium":
+                                     ship.damage += Math.rand(1, 4 * dm);
+                                     break;
+                             }
+                             if (ship.damage > 90) {
+                                 ship.damage = 90;
+                             }
+                         }
                     }
                     if (global.tech.hasOwnProperty('eris_scan') && ship.location === 'spc_eris' && ship.transit === 0){
                         eScan += sensorRange(ship);
@@ -12222,7 +12263,7 @@ function longLoop(){
                     }
                 });
                 if (global.tech.hasOwnProperty('eris_scan') && global.tech.hasOwnProperty('eris') && global.tech.eris === 1 && eScan > 50){
-                    global.tech.eris_scan += eScan - 50;
+                    global.tech.eris_scan += (eScan - 50) * turboSpeed;
                     if (global.tech.eris_scan >= 100){
                         global.tech.eris_scan = 100;
                         global.tech.eris = 2;
@@ -12306,7 +12347,7 @@ function longLoop(){
                 let labs = (support_on['infectious_disease_lab'] || 0) / 100;
                 if (labs > 1){ labs = 1; }
                 let gain = +flib('curve',labs).toFixed(5) / 5;
-                global.tauceti.infectious_disease_lab.cure += gain;
+                global.tauceti.infectious_disease_lab.cure += gain * turboSpeed;
                 if (global.tauceti.infectious_disease_lab.cure > 100){ global.tauceti.infectious_disease_lab.cure = 100; }
             }
             else if (global.tauceti.infectious_disease_lab.cure >= 100 && global.tech.focus_cure === 2){
@@ -12325,17 +12366,20 @@ function longLoop(){
                 }
 
                 if (global.tech.focus_cure === 4 && global.race.vax < 25){
-                    global.race.vax += Math.rand(0, med * 2) / 150;
+                    // global.race.vax += Math.rand(0, med * 2) / 150;
+                    global.race.vax += med / 150 * turboSpeed;
                 }
                 else if (global.tech.focus_cure === 4 && global.race.vax >= 25){
                     global.tech.focus_cure = 5;
                     messageQueue(loc('tech_vaccine_campaign_msg1'),'info',false,['progress']);
                 }
                 else if (global.tech.focus_cure === 5 && global.race.vax < 50){
-                    global.race.vax += Math.rand(0, med * 2) / 450;
+                    // global.race.vax += Math.rand(0, med * 2) / 450;
+                    global.race.vax += med / 450 * turboSpeed;
                 }
                 else if (global.tech.focus_cure === 5 && global.race.vax < 75){
-                    global.race.vax += Math.rand(0, med * 2) / 1200;
+                    // global.race.vax += Math.rand(0, med * 2) / 1200;
+                    global.race.vax += med / 1200 * turboSpeed;
                 }
                 else if (global.tech.focus_cure === 6 && global.race.vax < 100){
                     let div = 1000;
@@ -12343,7 +12387,8 @@ function longLoop(){
                     else if (global.tech['vax_s']){ div = 390; }
                     else if (global.tech['vax_f']){ div = 25; }
                     else if (global.tech['vax_c']){ div = 125; }
-                    global.race.vax += Math.rand(0, med * 2) / div;
+                    // global.race.vax += Math.rand(0, med * 2) / div;
+                    global.race.vax += med / div * turboSpeed;
                 }
                 else if (global.race.vax >= 100 && global.tech.focus_cure <= 6){
                     global.race.vax = 100;
@@ -12643,7 +12688,8 @@ function longLoop(){
                     if (!global.race.hasOwnProperty('qDays')){
                         global.race['qDays'] = 0;
                     }
-                    global.race.qDays++;
+                    // TODO: Use "dayPassed" for better precision
+                    global.race.qDays += turboSpeed;
                 }
             }
         }
@@ -12711,31 +12757,57 @@ function longLoop(){
             }
         }
 
-        if (!global.tech['xeno'] && global.galaxy['scout_ship'] && gal_on['scout_ship'] > 0 && Math.rand(0, 10) === 0){
-            global.tech['xeno'] = 1;
-            global.galaxy.scout_ship.count--;
-            global.galaxy.scout_ship.on--;
-            let civPerShip = actions.galaxy.gxy_gateway.scout_ship.ship.civ();
-            let milPerShip = actions.galaxy.gxy_gateway.scout_ship.ship.mil();
-            global.galaxy.scout_ship.crew -= civPerShip;
-            global.galaxy.scout_ship.mil -= milPerShip;
-            global.resource[global.race.species].amount -= civPerShip;
-            global.civic.garrison.workers -= milPerShip;
-            global.civic.garrison.crew -= milPerShip;
-            messageQueue(loc('galaxy_encounter'),'info',false,['progress']);
-            drawTech();
+        // TODO: Use "dayPassed" for more precision
+        for (let i = 0; i < turboSpeed; i++) {
+            if (
+                !global.tech["xeno"] &&
+                global.galaxy["scout_ship"] &&
+                gal_on["scout_ship"] > 0 &&
+                Math.rand(0, 10) === 0
+            ) {
+                global.tech["xeno"] = 1;
+                global.galaxy.scout_ship.count--;
+                global.galaxy.scout_ship.on--;
+                let civPerShip = actions.galaxy.gxy_gateway.scout_ship.ship.civ();
+                let milPerShip = actions.galaxy.gxy_gateway.scout_ship.ship.mil();
+                global.galaxy.scout_ship.crew -= civPerShip;
+                global.galaxy.scout_ship.mil -= milPerShip;
+                global.resource[global.race.species].amount -= civPerShip;
+                global.civic.garrison.workers -= milPerShip;
+                global.civic.garrison.crew -= milPerShip;
+                messageQueue(loc("galaxy_encounter"), "info", false, ["progress"]);
+                drawTech();
+                break;
+            }
         }
 
-        if (global.galaxy['scavenger'] && global.tech['conflict'] && global.tech['conflict'] === 4 && gal_on['scavenger'] > 0 && Math.rand(0, 50) <= gal_on['scavenger']){
-            global.tech['conflict'] = 5;
-            messageQueue(loc('galaxy_scavenger_find'),'info',false,['progress']);
+        // TODO: Use "dayPassed" for more precision
+        for (let i = 0; i < turboSpeed; i++) {
+        if (
+            global.galaxy["scavenger"] &&
+            global.tech["conflict"] &&
+            global.tech["conflict"] === 4 &&
+            gal_on["scavenger"] > 0 &&
+            Math.rand(0, 50) <= gal_on["scavenger"]
+        ) {
+            global.tech["conflict"] = 5;
+            messageQueue(loc("galaxy_scavenger_find"), "info", false, ["progress"]);
             drawTech();
         }
+        }
 
-        if (!global.tech['syndicate'] && !global.race['lone_survivor'] && global.tech['outer'] && Math.rand(0, 20) === 0){
-            messageQueue(loc('outer_syndicate',[govTitle(4)]),'info',false,['progress']);
-            global.tech['syndicate'] = 1;
-            global.space['syndicate'] = {};
+        // TODO: Use "dayPassed" for more precision
+        for (let i = 0; i < turboSpeed; i++) {
+            if (
+                !global.tech["syndicate"] &&
+                !global.race["lone_survivor"] &&
+                global.tech["outer"] &&
+                Math.rand(0, 20) === 0
+            ) {
+                messageQueue(loc("outer_syndicate", [govTitle(4)]), "info", false, ["progress"]);
+                global.tech["syndicate"] = 1;
+                global.space["syndicate"] = {};
+            }
         }
 
         if (!global.tech['corrupted_ai'] && p_on['ai_core2'] && calcAIDrift() === 100){
@@ -12774,59 +12846,68 @@ function longLoop(){
 
     // Event triggered
     if (!global.race.seeded || (global.race.seeded && global.race['chose'])){
-        if (Math.rand(0,global.event.t) === 0){
-            let event_pool = eventList('major');
-            if (event_pool.length > 0){
-                let event = event_pool[Math.floor(seededRandom(0,event_pool.length))];
-                let msg = events[event].effect();
-                messageQueue(msg,'caution',false,['events','major_events']);
-                global.event.l = event;
-            }
-            global.event.t = 999;
-            if (astroSign === 'pisces'){
-                global.event.t -= astroVal('pisces')[0];
-            }
-        }
-        else {
-            global.event.t--;
-        }
-
-        if (global.race.species !== 'protoplasm'){
-            if (Math.rand(0,global.m_event.t) === 0){
-                let event_pool = eventList('minor');
-                if (!global.race['pet'] && ((global.race['catnip'] && global.race.catnip >= 2) || (global.race['anise'] && global.race.anise >= 2))){
-                    event_pool = ['pet'];
-                }
-                if (event_pool.length > 0){
-                    let event = event_pool[Math.floor(seededRandom(0,event_pool.length))];
+        // TODO: Use "dayPassed" for better precison
+        for (let i = 0; i < turboSpeed; i++) {
+            if (Math.rand(0, global.event.t) === 0) {
+                let event_pool = eventList("major");
+                if (event_pool.length > 0) {
+                    let event = event_pool[Math.floor(seededRandom(0, event_pool.length))];
                     let msg = events[event].effect();
-                    messageQueue(msg,false,false,['events','minor_events']);
-                    global.m_event.l = event;
+                    messageQueue(msg, "caution", false, ["events", "major_events"]);
+                    global.event.l = event;
                 }
-                global.m_event.t = 850;
-                if (astroSign === 'pisces'){
-                    global.m_event.t -= astroVal('pisces')[1];
+                global.event.t = 999;
+                if (astroSign === "pisces") {
+                    global.event.t -= astroVal("pisces")[0];
                 }
+            } else {
+                global.event.t--;
             }
-            else {
-                global.m_event.t--;
-            }
-        }
 
-        if (global.race['witch_hunter'] && global.resource.Sus.amount >= 100){
-            let odds = 300 - global.resource.Sus.amount;
-            if (odds < 1){ odds = 1; }
-            if (Math.rand(0,odds) === 0){
-                let msg = events['witch_hunt_crusade'].effect();
-                messageQueue(msg,'caution',false,['events','major_events']);
+            if (global.race.species !== "protoplasm") {
+                if (Math.rand(0, global.m_event.t) === 0) {
+                    let event_pool = eventList("minor");
+                    if (
+                        !global.race["pet"] &&
+                        ((global.race["catnip"] && global.race.catnip >= 2) ||
+                            (global.race["anise"] && global.race.anise >= 2))
+                    ) {
+                        event_pool = ["pet"];
+                    }
+                    if (event_pool.length > 0) {
+                        let event = event_pool[Math.floor(seededRandom(0, event_pool.length))];
+                        let msg = events[event].effect();
+                        messageQueue(msg, false, false, ["events", "minor_events"]);
+                        global.m_event.l = event;
+                    }
+                    global.m_event.t = 850;
+                    if (astroSign === "pisces") {
+                        global.m_event.t -= astroVal("pisces")[1];
+                    }
+                } else {
+                    global.m_event.t--;
+                }
             }
-        }
-        if (global.race['witch_hunter'] && global.resource.Sus.amount >= 50 && global.civic.scientist.workers > 0){
-            let odds = 250 - global.resource.Sus.amount * 2;
-            if (odds < 50){ odds = 50; }
-            if (Math.rand(0,odds) === 0){
-                let msg = events['witch_hunt'].effect();
-                messageQueue(msg,false,false,['events','minor_events']);
+
+            if (global.race["witch_hunter"] && global.resource.Sus.amount >= 100) {
+                let odds = 300 - global.resource.Sus.amount;
+                if (odds < 1) {
+                    odds = 1;
+                }
+                if (Math.rand(0, odds) === 0) {
+                    let msg = events["witch_hunt_crusade"].effect();
+                    messageQueue(msg, "caution", false, ["events", "major_events"]);
+                }
+            }
+            if (global.race["witch_hunter"] && global.resource.Sus.amount >= 50 && global.civic.scientist.workers > 0) {
+                let odds = 250 - global.resource.Sus.amount * 2;
+                if (odds < 50) {
+                    odds = 50;
+                }
+                if (Math.rand(0, odds) === 0) {
+                    let msg = events["witch_hunt"].effect();
+                    messageQueue(msg, false, false, ["events", "minor_events"]);
+                }
             }
         }
         if(global.stats.achieve['endless_hunger'] && global.city.banquet && global.city.banquet.on){
