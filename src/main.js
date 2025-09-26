@@ -23,6 +23,17 @@ import { setWeather, seasonDesc, astrologySign, astroVal } from './seasons.js';
 import { getTopChange } from './wiki/change.js';
 import { enableDebug, updateDebugData } from './debug.js';
 
+let turboSpeed = 10;
+Object.defineProperty(window, "turboSpeed", {
+  get() {
+    return turboSpeed;
+  },
+  set(v) {
+    turboSpeed = v;
+    console.log("全局速度改为", v);
+  },
+});
+
 {
     $(document).ready(function() {
         if (!window.matchMedia)
