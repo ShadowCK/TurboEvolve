@@ -677,6 +677,29 @@ export function resetResBuffer(){
     });
 }
 
+const resCache = {}
+export function cacheRes(res, recover = false) {
+    resCache[res] ??= {};
+    if (!recover) {
+        resCache[res].amount = global.resource[res].amount;
+        resCache[res].delta = global.resource[res].delta;
+        if (res === "Mana") {
+            resCache[res].gen_d = global.resource[res].gen.d;
+        }
+        resCache[res].temp_max = tmp_vars.resource[res].temp_max;
+    } else {
+        if (!resCache[res]) {
+            return;
+        }
+        global.resource[res].amount = resCache[res].amount;
+        global.resource[res].delta = resCache[res].delta;
+        if (res === "Mana") {
+            global.resource[res].gen.d = resCache[res].gen_d;
+        }
+        tmp_vars.resource[res].temp_max = resCache[res].temp_max;
+    }
+}
+
 export function modRes(res,val,notrack){
     if(res === 'Food' && global.race['fasting']){
         global.resource[res].amount = 0;

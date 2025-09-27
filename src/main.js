@@ -1,7 +1,7 @@
 import { global, save, seededRandom, webWorker, intervals, keyMap, atrack, resizeGame, breakdown, sizeApproximation, keyMultiplier, power_generated, p_on, support_on, int_on, gal_on, spire_on, set_qlevel, quantum_level, callback_queue, active_rituals } from './vars.js';
 import { loc } from './locale.js';
 import { unlockAchieve, checkAchievements, drawAchieve, alevel, universeAffix, challengeIcon, unlockFeat, checkAdept } from './achieve.js';
-import { gameLoop, vBind, popover, clearPopper, flib, tagEvent, timeCheck, arpaTimeCheck, timeFormat, powerModifier, resetResBuffer, modRes, initMessageQueue, messageQueue, calc_mastery, calcPillar, darkEffect, calcQueueMax, calcRQueueMax, buildQueue, shrineBonusActive, getShrineBonus, eventActive, easterEggBind, trickOrTreatBind, powerGrid, deepClone, addATime, exceededATimeThreshold, loopTimers, calcQuantumLevel, drawPet } from './functions.js';
+import { gameLoop, vBind, popover, clearPopper, flib, tagEvent, timeCheck, arpaTimeCheck, timeFormat, powerModifier, resetResBuffer, cacheRes, modRes, initMessageQueue, messageQueue, calc_mastery, calcPillar, darkEffect, calcQueueMax, calcRQueueMax, buildQueue, shrineBonusActive, getShrineBonus, eventActive, easterEggBind, trickOrTreatBind, powerGrid, deepClone, addATime, exceededATimeThreshold, loopTimers, calcQuantumLevel, drawPet } from './functions.js';
 import { races, traits, racialTrait, orbitLength, servantTrait, randomMinorTrait, biomes, planetTraits, shapeShift, fathomCheck, blubberFill, cleanRemoveTrait } from './races.js';
 import { defineResources, resource_values, spatialReasoning, craftCost, plasmidBonus, faithBonus, faithTempleCount, tradeRatio, craftingRatio, crateValue, containerValue, tradeSellPrice, tradeBuyPrice, atomic_mass, supplyValue, galaxyOffers } from './resources.js';
 import { defineJobs, job_desc, loadFoundry, farmerValue, jobName, jobScale, workerScale, limitCraftsmen, loadServants} from './jobs.js';
@@ -892,6 +892,8 @@ resourceAlt();
 var firstRun = true;
 var gene_sequence = global.arpa['sequence'] && global.arpa['sequence']['on'] ? global.arpa.sequence.on : 0;
 function fastLoop(){
+    cacheRes('Food', false);
+    
     if (!global.race['no_craft']){
         $('.craft').each(function(e){
             if (typeof $(this).data('val') === 'number'){
@@ -3411,18 +3413,6 @@ function fastLoop(){
             global.portal.purifier.diff = supply / time_multiplier;
             if (global.portal.purifier.supply > global.portal.purifier.sup_max){
                 global.portal.purifier.supply = global.portal.purifier.sup_max;
-            }
-        }
-
-        if (global.race['carnivore'] && !global.race['herbivore'] && !global.race['soul_eater'] && !global.race['artifical']){
-            if (global.resource['Food'].amount > 10){
-                let rotPercent = traits.carnivore.vars()[0] / 100;
-                let rot = +((global.resource['Food'].amount - 10) * (rotPercent)).toFixed(3);
-                if (global.city['smokehouse']){
-                    rot *= 0.9 ** global.city.smokehouse.count;
-                }
-                modRes('Food', -(rot * time_multiplier));
-                breakdown.p.consume['Food'][loc('spoilage')] = -(rot);
             }
         }
 
@@ -8153,6 +8143,25 @@ function fastLoop(){
                 trickOrTreatBind(i,true);
                 $(`#trick${i}`).addClass('binded');
             }
+        }
+    }
+
+    // New calculation for food spoilage using exponential euler
+    if (global.race['carnivore'] && !global.race['herbivore'] && !global.race['soul_eater'] && !global.race['artifical']){
+        if (global.resource['Food'].amount > 10){
+            const curFood = global.resource['Food'].amount;
+            cacheRes('Food', true);
+            const production = (global.resource['Food'].amount - curFood) / time_multiplier; // Can be negative; still works
+            let rotPercent = traits.carnivore.vars()[0] / 100;
+            // let rot = +((global.resource['Food'].amount - 10) * (rotPercent)).toFixed(3);
+            let rot = rotPercent;
+            if (global.city['smokehouse']){
+                rot *= 0.9 ** global.city.smokehouse.count;
+            }
+            const decay = Math.exp(-rot * time_multiplier);
+            const newFood = curFood * decay + production / rot * (1 - decay);
+            modRes('Food', newFood - curFood);
+            breakdown.p.consume['Food'][loc('spoilage')] = -(newFood - curFood);
         }
     }
 
