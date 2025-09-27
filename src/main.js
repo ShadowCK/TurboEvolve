@@ -8128,7 +8128,7 @@ function fastLoop(){
             global.resource[res].amount = global.resource[res].max;
         }
         if (global['resource'][res].rate > 0 || (global['resource'][res].rate === 0 && global['resource'][res].max === -1)){
-            diffCalc(res,webWorker.mt);
+            diffCalc(res,webWorker.mt * turboSpeed);
         }
     });
     if(global.race['fasting']){
