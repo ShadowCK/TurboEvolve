@@ -891,9 +891,7 @@ resourceAlt();
 
 var firstRun = true;
 var gene_sequence = global.arpa['sequence'] && global.arpa['sequence']['on'] ? global.arpa.sequence.on : 0;
-function fastLoop(){
-    cacheRes('Food', false);
-    
+function fastLoop(){    
     if (!global.race['no_craft']){
         $('.craft').each(function(e){
             if (typeof $(this).data('val') === 'number'){
@@ -1229,6 +1227,9 @@ function fastLoop(){
 
     var time_multiplier = 0.25 * turboSpeed;
     resetResBuffer();
+
+    // For carnivore spoilage calculation
+    cacheRes('Food', false);
 
     if (global.race.species === 'protoplasm'){
         // Early Evolution Game
@@ -8100,6 +8101,27 @@ function fastLoop(){
       }
     }
 
+    // New calculation for food spoilage using exponential euler
+    if (global.race['carnivore'] && !global.race['herbivore'] && !global.race['soul_eater'] && !global.race['artifical']){
+        if (global.resource['Food'].amount > 10){
+            // After production
+            const curFood = global.resource['Food'].amount;
+            // Recover global.resource['Food'] to before production
+            cacheRes('Food', true);
+            const production = (curFood - global.resource['Food'].amount) / time_multiplier; // Can be negative; still works
+            let rotPercent = traits.carnivore.vars()[0] / 100;
+            let rot = rotPercent;
+            if (global.city['smokehouse']){
+                rot *= 0.9 ** global.city.smokehouse.count;
+            }
+            const decay = Math.exp(-rot * time_multiplier);
+            // After spoil
+            const newFood = Math.max(0, curFood * decay + production / rot * (1 - decay));
+            modRes('Food', newFood - global.resource['Food'].amount);
+            breakdown.p.consume['Food'][loc('spoilage')] = (newFood - curFood) / time_multiplier;
+        }
+    }
+
     // main resource delta tracking
     Object.keys(global.resource).forEach(function (res) {
         if (global.resource[res].amount > global.resource[res].max && global.resource[res].max >= 0){
@@ -8143,25 +8165,6 @@ function fastLoop(){
                 trickOrTreatBind(i,true);
                 $(`#trick${i}`).addClass('binded');
             }
-        }
-    }
-
-    // New calculation for food spoilage using exponential euler
-    if (global.race['carnivore'] && !global.race['herbivore'] && !global.race['soul_eater'] && !global.race['artifical']){
-        if (global.resource['Food'].amount > 10){
-            const curFood = global.resource['Food'].amount;
-            cacheRes('Food', true);
-            const production = (global.resource['Food'].amount - curFood) / time_multiplier; // Can be negative; still works
-            let rotPercent = traits.carnivore.vars()[0] / 100;
-            // let rot = +((global.resource['Food'].amount - 10) * (rotPercent)).toFixed(3);
-            let rot = rotPercent;
-            if (global.city['smokehouse']){
-                rot *= 0.9 ** global.city.smokehouse.count;
-            }
-            const decay = Math.exp(-rot * time_multiplier);
-            const newFood = curFood * decay + production / rot * (1 - decay);
-            modRes('Food', newFood - curFood);
-            breakdown.p.consume['Food'][loc('spoilage')] = -(newFood - curFood);
         }
     }
 

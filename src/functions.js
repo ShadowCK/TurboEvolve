@@ -678,6 +678,7 @@ export function resetResBuffer(){
 }
 
 const resCache = {}
+// TODO: Account for notrack, otherwise adding resources that are not considered production will affect production calc and display
 export function cacheRes(res, recover = false) {
     resCache[res] ??= {};
     if (!recover) {
