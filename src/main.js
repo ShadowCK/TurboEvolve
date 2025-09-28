@@ -23,7 +23,7 @@ import { setWeather, seasonDesc, astrologySign, astroVal } from './seasons.js';
 import { getTopChange } from './wiki/change.js';
 import { enableDebug, updateDebugData } from './debug.js';
 
-let turboSpeed = localStorage.getItem("turboSpeed") || 10;
+let turboSpeed = +localStorage.getItem("turboSpeed") || 10;
 localStorage.setItem("turboSpeed", turboSpeed);
 Object.defineProperty(window, "turboSpeed", {
   get() {
